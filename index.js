@@ -44,7 +44,7 @@ app.use(
   })
 );
 
-app.listen(3001, (err) => {
+app.listen(3000, (err) => {
   console.log("server running on port 3000");
 });
 
