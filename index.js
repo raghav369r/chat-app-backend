@@ -11,7 +11,7 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 4000;
-console.log("port: ",PORT);
+console.log("port: ", PORT);
 const typeDefs = gql`
   ${typeDefsUser}
   ${typeDefsMsg}
@@ -34,6 +34,7 @@ const resolvers = {
 
 async function startServer() {
   const app = express();
+  app.use(cors());
 
   const schema = makeExecutableSchema({ typeDefs, resolvers });
 
@@ -84,7 +85,9 @@ async function startServer() {
     console.log(
       `Server is running at http://localhost:${PORT}${apolloServer.graphqlPath}`
     );
-    console.log(`WebSocket server is running at ws://localhost:${PORT}/graphql`);
+    console.log(
+      `WebSocket server is running at ws://localhost:${PORT}/graphql`
+    );
   });
 }
 
