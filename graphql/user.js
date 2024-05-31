@@ -42,16 +42,12 @@ const typeDefsUser = `
 const resolversUser = {
   Query: {
     getAllUsers: async (_, __, { user }) => {
-      const users = await prisma.user.findMany(
-        {
-          orderBy: {
-            createdAt: "desc",
-          },
+      const users = await prisma.user.findMany({
+        orderBy: {
+          createdAt: "desc",
         },
-        {
-          where: { id: { not: user?.id } },
-        }
-      );
+        where: { id: { not: user?.id } },
+      });
       // console.log(users)
       return users;
     },

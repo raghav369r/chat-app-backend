@@ -8,6 +8,9 @@ const { typeDefsUser, resolversUser } = require("./graphql/user.js");
 const { typeDefsMsg, resolversMsg } = require("./graphql/messages.js");
 const { gql } = require("apollo-server-express");
 const jwt = require("jsonwebtoken");
+require("dotenv").config();
+
+const PORT = process.env.PORT || 4000;
 
 const typeDefs = gql`
   ${typeDefsUser}

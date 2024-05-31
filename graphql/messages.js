@@ -1,5 +1,5 @@
 const prisma = require("../client/prisma.js");
-const { PubSub } = require("graphql-subscriptions");
+const { PubSub, withFilter } = require("graphql-subscriptions");
 
 const pubsub = new PubSub();
 const MSG_CREATED = "MESSAGE_CREATED";
@@ -26,7 +26,7 @@ const typeDefsMsg = `
     sendMessage(newMsg: newMessage!): Message
   }
   type Subscription {
-    messageAdded:Message
+    messageAdded(sender:ID,receiver:ID):Message
   }
   
 `;
@@ -84,7 +84,16 @@ const resolversMsg = {
   },
   Subscription: {
     messageAdded: {
-      subscribe: () => pubsub.asyncIterator(MSG_CREATED),
+      subscribe: withFilter(
+        () => pubsub.asyncIterator(MSG_CREATED),
+        ({ messageAdded: payload }, variables) => {
+          const { sender, receiver } = variables;
+          return (
+            (payload.senderId == sender && payload.receiverId == receiver) ||
+            (payload.senderId == receiver && payload.receiverId == sender)
+          );
+        }
+      ),
     },
   },
   // sub query in get all users
