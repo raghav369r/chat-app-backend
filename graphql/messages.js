@@ -1,5 +1,8 @@
 import prisma from "../client/prisma.js";
+import { PubSub } from "graphql-subscriptions";
 
+const pubsub = new PubSub();
+const MSG_CREATED = "MESSAGE_CREATED";
 const typeDefsMsg = `
   type Message {
     id: ID!
@@ -13,7 +16,8 @@ const typeDefsMsg = `
     showSentMessages(id:ID!):[Message]
     showReceivedMessages(id:ID!):[Message]
     messagesByUser(id:ID!):[Message]
-}
+  }
+  
   input newMessage {
     message: String!
     receiverId: ID!
@@ -21,6 +25,10 @@ const typeDefsMsg = `
   type Mutation {
     sendMessage(newMsg: newMessage!): Message
   }
+  type Subscription {
+    messageAdded:Message
+  }
+  
 `;
 
 const resolversMsg = {
@@ -43,8 +51,8 @@ const resolversMsg = {
     messagesByUser: async (_, { id }, { user }) => {
       if (!user?.id) throw new Error("Missing token");
       const msgs = await prisma.message.findMany({
-        orderBy:{
-            createdAt:"asc"
+        orderBy: {
+          createdAt: "asc",
         },
         where: {
           OR: [
@@ -67,7 +75,17 @@ const resolversMsg = {
           senderId: user.id,
         },
       });
+      pubsub.publish(MSG_CREATED, {
+        messageAdded: msg,
+      });
+
       return msg;
+    },
+  },
+
+  Subscription: {
+    messageAdded: {
+      subscribe: () => pubsub.asyncIterator(MSG_CREATED),
     },
   },
 
