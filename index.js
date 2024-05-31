@@ -1,3 +1,4 @@
+const cors = require("cors");
 const express = require("express");
 const { ApolloServer } = require("apollo-server-express");
 const { createServer } = require("http");
@@ -11,7 +12,6 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 4000;
-console.log("port: ", PORT);
 const typeDefs = gql`
   ${typeDefsUser}
   ${typeDefsMsg}
