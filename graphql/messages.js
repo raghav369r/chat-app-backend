@@ -85,7 +85,10 @@ const resolversMsg = {
   Subscription: {
     messageAdded: {
       subscribe: withFilter(
-        () => pubsub.asyncIterator(MSG_CREATED),
+        (_, __, { user }) => {
+          if (!user) throw new Error("token missing or expired, login again");
+          return pubsub.asyncIterator(MSG_CREATED);
+        },
         ({ messageAdded: payload }, variables) => {
           const { sender, receiver } = variables;
           return (

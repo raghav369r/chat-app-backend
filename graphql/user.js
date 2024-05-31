@@ -1,10 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const dotenv = require("dotenv");
+require("dotenv").config();
 const prisma = require("../client/prisma.js");
-
-dotenv.config();
-
 const typeDefsUser = `
   scalar Date
 
@@ -24,10 +21,10 @@ const typeDefsUser = `
     signInUser(user: signIn): Token
   }
   input NewUser {
-    firstName: String
-    lastName: String
-    email: String
-    password: String
+    firstName: String!
+    lastName: String!
+    email: String!
+    password: String!
   }
 
   input signIn {
@@ -35,7 +32,7 @@ const typeDefsUser = `
     password: String
   }
   type Mutation {
-    registerUser(newUser: NewUser): Token
+    registerUser(newUser: NewUser!): Token
   }
 `;
 

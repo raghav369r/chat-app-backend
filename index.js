@@ -59,7 +59,26 @@ async function startServer() {
     path: "/graphql",
   });
 
-  useServer({ schema }, wsServer);
+  useServer(
+    {
+      schema,
+      onConnect: () => {},
+      onDisconnect: () => {},
+      // extracting jwt token, decodeing it and making it available to Subscription resolvers
+      context: async (ctx, msg, args) => {
+        const { connectionParams } = ctx;
+        const token = connectionParams?.Authorization;
+        var decoded = null;
+        try {
+          if (token) decoded = await jwt.verify(token, process.env.JWT_KEY);
+        } catch (ex) {
+          console.log(ex);
+        }
+        return { user: decoded };
+      },
+    },
+    wsServer
+  );
 
   server.listen(4000, () => {
     console.log(
