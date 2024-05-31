@@ -1,16 +1,13 @@
-import cors from "cors";
-import express from "express";
-import jwt from "jsonwebtoken";
-import { createServer } from "http";
-import { WebSocketServer } from "ws";
-// import { ApolloServer } from "@apollo/server";
-// import { expressMiddleware } from "@apollo/server/express4";
-import { ApolloServer, gql } from "apollo-server-express";
-import { makeExecutableSchema } from "@graphql-tools/schema";
-import { typeDefsUser, resolversUser } from "./graphql/user.js";
-import { typeDefsMsg, resolversMsg } from "./graphql/messages.js";
-import { useServer } from "graphql-ws/lib/use/ws";
-// import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
+const express = require("express");
+const { ApolloServer } = require("apollo-server-express");
+const { createServer } = require("http");
+const { useServer } = require("graphql-ws/lib/use/ws");
+const { makeExecutableSchema } = require("@graphql-tools/schema");
+const { WebSocketServer } = require("ws"); // Ensure this const is =( the 'ws' package
+const { typeDefsUser, resolversUser } = require("./graphql/user.js");
+const { typeDefsMsg, resolversMsg } = require("./graphql/messages.js");
+const { gql } = require("apollo-server-express");
+const jwt = require("jsonwebtoken");
 
 const typeDefs = gql`
   ${typeDefsUser}
@@ -25,83 +22,156 @@ const resolvers = {
     ...resolversMsg.Mutation,
     ...resolversUser.Mutation,
   },
+  // forgot to add subscription
+  // took two days to debug
+  Subscription: {
+    ...resolversMsg.Subscription,
+  },
 };
 
-const schema = makeExecutableSchema({ typeDefs, resolvers });
+async function startServer() {
+  const app = express();
 
-const cxt = async ({ req }) => {
-  const token = req.headers.authorization;
-  if (!token) return { ...req };
-  const decoded = await jwt.verify(token, process.env.JWT_KEY);
-  return { ...req, user: decoded };
-};
+  const schema = makeExecutableSchema({ typeDefs, resolvers });
 
-const app = express();
-const apolloServer = new ApolloServer({ schema, context: cxt });
-await apolloServer.start();
-apolloServer.applyMiddleware({ app, path: "/graphql" });
-const server = app.listen(4000, () => {
+  const cxt = async ({ req }) => {
+    const token = req.headers.authorization;
+    if (!token) return { ...req };
+    const decoded = await jwt.verify(token, process.env.JWT_KEY);
+    return { ...req, user: decoded };
+  };
+  const apolloServer = new ApolloServer({
+    schema,
+    context: cxt,
+  });
+
+  await apolloServer.start();
+  apolloServer.applyMiddleware({ app });
+
+  const server = createServer(app);
+
+  // Ensure this is the correct way to create a WebSocket server with 'ws'
   const wsServer = new WebSocketServer({
     server,
     path: "/graphql",
   });
+
   useServer({ schema }, wsServer);
-  console.log("apollo and subscription servevr is up");
-});
+
+  server.listen(4000, () => {
+    console.log(
+      `Server is running at http://localhost:4000${apolloServer.graphqlPath}`
+    );
+    console.log(`WebSocket server is running at ws://localhost:4000/graphql`);
+  });
+}
+
+startServer();
+
+// const cors =( "cors";
+// const express =( "express";
+// const jwt =( "jsonwebtoken";
+// const { createServer } =( "http";
+// const { WebSocketServer } =( "ws";
+// // const { ApolloServer } =( "@apollo/server";
+// // const { expressMiddleware } =( "@apollo/server/express4";
+// const { ApolloServer, gql } =( "apollo-server-express";
+// const { makeExecutableSchema } =( "@graphql-tools/schema";
+// const { typeDefsUser, resolversUser } =( "./graphql/user.js";
+// const { typeDefsMsg, resolversMsg } =( "./graphql/messages.js";
+// const { useServer } =( "graphql-ws/lib/use/ws";
+// // const { ApolloServerPluginDrainHttpServer } =( "@apollo/server/plugin/drainHttpServer";
+
+// const typeDefs = gql`
+//   ${typeDefsUser}
+//   ${typeDefsMsg}
+// `;
+// const resolvers = {
+//   Query: {
+//     ...resolversMsg.Query,
+//     ...resolversUser.Query,
+//   },
+//   Mutation: {
+//     ...resolversMsg.Mutation,
+//     ...resolversUser.Mutation,
+//   },
+// };
 
 // const schema = makeExecutableSchema({ typeDefs, resolvers });
 
+// const cxt = async ({ req }) => {
+//   const token = req.headers.authorization;
+//   if (!token) return { ...req };
+//   const decoded = await jwt.verify(token, process.env.JWT_KEY);
+//   return { ...req, user: decoded };
+// };
+
 // const app = express();
-// const httpServer = createServer(app);
-
-// const wsServer = new WebSocketServer({
-//   server: httpServer,
-//   path: "/graphql",
+// const apolloServer = new ApolloServer({ schema, context: cxt });
+// await apolloServer.start();
+// apolloServer.applyMiddleware({ app, path: "/graphql" });
+// const server = app.listen(4000, () => {
+//   const wsServer = new WebSocketServer({
+//     server,
+//     path: "/graphql",
+//   });
+//   useServer({ schema }, wsServer);
+//   console.log("apollo and subscription servevr is up");
 // });
 
-// const serverCleanup = useServer({ schema }, wsServer);
+// // const schema = makeExecutableSchema({ typeDefs, resolvers });
 
-// const server = new ApolloServer({
-//   schema,
-//   plugins: [
-//     // Proper shutdown for the HTTP server.
-//     ApolloServerPluginDrainHttpServer({ httpServer }),
+// // const app = express();
+// // const httpServer = createServer(app);
 
-//     // Proper shutdown for the WebSocket server.
-//     {
-//       async serverWillStart() {
-//         return {
-//           async drainServer() {
-//             await serverCleanup.dispose();
-//           },
-//         };
-//       },
-//     },
-//   ],
-// });
+// // const wsServer = new WebSocketServer({
+// //   server: httpServer,
+// //   path: "/graphql",
+// // });
 
-// await server.start();
+// // const serverCleanup = useServer({ schema }, wsServer);
 
-// app.use(cors());
-// app.use(express.json());
+// // const server = new ApolloServer({
+// //   schema,
+// //   plugins: [
+// //     // Proper shutdown for the HTTP server.
+// //     ApolloServerPluginDrainHttpServer({ httpServer }),
 
-// app.use(
-//   "/graphql",
-//   expressMiddleware(server, {
-//     context: async ({ req }) => {
-//       const token = req.headers.authorization;
-//       if (!token) return { ...req };
-//       const decoded = await jwt.verify(token, process.env.JWT_KEY);
-//       return { ...req, user: decoded };
-//     },
-//   })
-// );
+// //     // Proper shutdown for the WebSocket server.
+// //     {
+// //       async serverWillStart() {
+// //         return {
+// //           async drainServer() {
+// //             await serverCleanup.dispose();
+// //           },
+// //         };
+// //       },
+// //     },
+// //   ],
+// // });
 
-// const PORT = process.env.PORT || 3000;
+// // await server.start();
 
-// httpServer.listen(PORT, (err) => {
-//   console.log(`server running on port ${PORT}`);
-// });
+// // app.use(cors());
+// // app.use(express.json());
 
-// const { ApolloServer, gql } = require("apollo-server");
-// server.listen().then(({ url }) => console.log(`Server running at ${url}`));  //stand alone server
+// // app.use(
+// //   "/graphql",
+// //   expressMiddleware(server, {
+// //     context: async ({ req }) => {
+// //       const token = req.headers.authorization;
+// //       if (!token) return { ...req };
+// //       const decoded = await jwt.verify(token, process.env.JWT_KEY);
+// //       return { ...req, user: decoded };
+// //     },
+// //   })
+// // );
+
+// // const PORT = process.env.PORT || 3000;
+
+// // httpServer.listen(PORT, (err) => {
+// //   console.log(`server running on port ${PORT}`);
+// // });
+
+// // const { ApolloServer, gql } = require("apollo-server");
+// // server.listen().then(({ url }) => console.log(`Server running at ${url}`));  //stand alone server

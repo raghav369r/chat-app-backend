@@ -1,7 +1,7 @@
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-import prisma from "../client/prisma.js";
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const dotenv = require("dotenv");
+const prisma = require("../client/prisma.js");
 
 dotenv.config();
 
@@ -110,4 +110,4 @@ const resolversUser = {
   // sub query in get all users
 };
 
-export { resolversUser, typeDefsUser };
+module.exports = { resolversUser, typeDefsUser };

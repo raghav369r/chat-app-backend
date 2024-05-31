@@ -1,4 +1,4 @@
-import pc from "@prisma/client";
+const pc = require("@prisma/client");
 const prisma = new pc.PrismaClient();
 
-export default prisma;
+module.exports = prisma;

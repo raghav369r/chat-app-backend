@@ -1,5 +1,5 @@
-import prisma from "../client/prisma.js";
-import { PubSub } from "graphql-subscriptions";
+const prisma = require("../client/prisma.js");
+const { PubSub } = require("graphql-subscriptions");
 
 const pubsub = new PubSub();
 const MSG_CREATED = "MESSAGE_CREATED";
@@ -82,14 +82,12 @@ const resolversMsg = {
       return msg;
     },
   },
-
   Subscription: {
     messageAdded: {
       subscribe: () => pubsub.asyncIterator(MSG_CREATED),
     },
   },
-
   // sub query in get all users
 };
 
-export { resolversMsg, typeDefsMsg };
+module.exports = { resolversMsg, typeDefsMsg };

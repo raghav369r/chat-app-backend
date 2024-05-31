@@ -1,14 +1,14 @@
-import { ApolloServer } from '@apollo/server';
-import { expressMiddleware } from '@apollo/server/express4';
-import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
-import { createServer } from 'http';
-import express from 'express';
-import { makeExecutableSchema } from '@graphql-tools/schema';
-import { WebSocketServer } from 'ws';
-import { useServer } from 'graphql-ws/lib/use/ws';
-import cors from 'cors';
-import resolvers from './resolvers';
-import typeDefs from './typeDefs';
+const { ApolloServer } =( '@apollo/server';
+const { expressMiddleware } =( '@apollo/server/express4';
+const { ApolloServerPluginDrainHttpServer } =( '@apollo/server/plugin/drainHttpServer';
+const { createServer } =( 'http';
+const express =( 'express';
+const { makeExecutableSchema } =( '@graphql-tools/schema';
+const { WebSocketServer } =( 'ws';
+const { useServer } =( 'graphql-ws/lib/use/ws';
+const cors =( 'cors';
+const resolvers =( './resolvers';
+const typeDefs =( './typeDefs';
 
 // Create the schema, which will be used separately by ApolloServer and
 // the WebSocket server.
@@ -58,14 +58,14 @@ httpServer.listen(PORT, () => {
 
 
 
-// import { ApolloServer } from "@apollo/server";
-// import { expressMiddleware } from "@apollo/server/express4";
-// import cors from "cors";
-// import express from "express";
-// import { typeDefsUser, resolversUser } from "./graphql/user.js";
-// import { typeDefsMsg, resolversMsg } from "./graphql/messages.js";
-// import jwt from "jsonwebtoken";
-// import { gql } from "apollo-server-express";
+// const { ApolloServer } =( "@apollo/server";
+// const { expressMiddleware } =( "@apollo/server/express4";
+// const cors =( "cors";
+// const express =( "express";
+// const { typeDefsUser, resolversUser } =( "./graphql/user.js";
+// const { typeDefsMsg, resolversMsg } =( "./graphql/messages.js";
+// const jwt =( "jsonwebtoken";
+// const { gql } =( "apollo-server-express";
 
 // const app = express();
 // app.use(cors());
