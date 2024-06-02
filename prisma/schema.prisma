@@ -14,14 +14,16 @@ datasource db {
 }
 
 model User {
-  id        Int       @id @default(autoincrement())
-  firstName String
-  lastName  String
-  email     String    @unique
-  password  String
-  createdAt DateTime  @default(now())
-  sender    Message[] @relation(name: "sender")
-  receiver  Message[] @relation(name: "receiver")
+  id         Int       @id @default(autoincrement())
+  firstName  String
+  lastName   String
+  email      String    @unique
+  password   String
+  createdAt  DateTime  @default(now())
+  profileURL String    @default("")
+  about      String    @default("")
+  sender     Message[] @relation(name: "sender")
+  receiver   Message[] @relation(name: "receiver")
 }
 
 model Message {

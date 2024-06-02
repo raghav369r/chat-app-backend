@@ -11,6 +11,8 @@ const typeDefsUser = `
     lastName: String
     email: String
     createdAt: Date
+    about:String
+    profileURL:String
   }
   type Token {
     token: String
@@ -31,8 +33,17 @@ const typeDefsUser = `
     email: String
     password: String
   }
+  type About{
+    about:String
+  }
+  type Name{
+    name:String
+  }
   type Mutation {
     registerUser(newUser: NewUser!): Token
+    updateAbout(about:String):About
+    updateName(name:String):Name
+    updateNameNAbout(name:String,about:String):User
   }
 `;
 
@@ -75,6 +86,33 @@ const resolversUser = {
   },
 
   Mutation: {
+    updateAbout: async (_, { about }, { user }) => {
+      if (!user)
+        throw new Error("missing or expired token, Login and try again!!");
+      const res = await prisma.user.update({
+        data: { about: about },
+        where: { id: user.id },
+      });
+      return { about: res.about };
+    },
+    updateName: async (_, { name }, { user }) => {
+      if (!user)
+        throw new Error("missing or expired token, Login and try again!!");
+      const res = await prisma.user.update({
+        data: { firstName: name },
+        where: { id: user.id },
+      });
+      return { name: res.firstName };
+    },
+    updateNameNAbout: async (_, { name, about }, { user }) => {
+      if (!user)
+        throw new Error("missing or expired token, Login and try again!!");
+      const res = await prisma.user.update({
+        data: { firstName: name, about: about },
+        where: { id: user.id },
+      });
+      return res;
+    },
     registerUser: async (_, { newUser }) => {
       const user = await prisma.user.findUnique({
         where: { email: newUser.email },
