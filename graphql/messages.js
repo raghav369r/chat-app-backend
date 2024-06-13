@@ -1,8 +1,10 @@
+const { subscribe } = require("graphql");
 const prisma = require("../client/prisma.js");
 const { PubSub, withFilter } = require("graphql-subscriptions");
 
 const pubsub = new PubSub();
 const MSG_CREATED = "MESSAGE_CREATED";
+const TYPING = "typing...";
 const typeDefsMsg = `
   type Message {
     id: ID!
@@ -22,11 +24,18 @@ const typeDefsMsg = `
     message: String!
     receiverId: ID!
   }
+  type typing {
+    istyping: Boolean!
+    receiverId: ID!
+    senderId:ID!
+  }
   type Mutation {
     sendMessage(newMsg: newMessage!): Message
+    isTyping(receiverId:ID!,istyping:Boolean!):Boolean
   }
   type Subscription {
     messageAdded(sender:ID,receiver:ID):Message
+    typing(sender:ID!,receiver:ID!):typing
   }
   
 `;
@@ -78,8 +87,14 @@ const resolversMsg = {
       pubsub.publish(MSG_CREATED, {
         messageAdded: msg,
       });
-
       return msg;
+    },
+    isTyping: async (_, { istyping, receiverId }, { user }) => {
+      if (!user?.id) throw new Error("missing token!!");
+      pubsub.publish(TYPING, {
+        typing: { receiverId, istyping, senderId: user.id },
+      });
+      return istyping;
     },
   },
   Subscription: {
@@ -95,6 +110,22 @@ const resolversMsg = {
             (payload.senderId == sender && payload.receiverId == receiver) ||
             (payload.senderId == receiver && payload.receiverId == sender)
           );
+        }
+      ),
+    },
+    typing: {
+      // subscribe: (_, __, { user }) => {
+      //   if (!user) throw new Error("token missing or expired, login again");
+      //   return pubsub.asyncIterator(TYPING);
+      // },
+      subscribe: withFilter(
+        (_, __, { user }) => {
+          if (!user) throw new Error("token missing or expired, login again");
+          return pubsub.asyncIterator(TYPING);
+        },
+        ({ typing: payload }, variables) => {
+          const { receiver, sender } = variables;
+          return receiver == payload.receiverId && sender == payload.senderId;
         }
       ),
     },
