@@ -2,7 +2,8 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const prisma = require("../client/prisma.js");
-const typeDefsUser = `
+const { gql } = require("apollo-server-express");
+const typeDefsUser = gql`
   scalar Date
 
   type User {
@@ -11,17 +12,66 @@ const typeDefsUser = `
     lastName: String
     email: String
     createdAt: Date
-    about:String
-    profileURL:String
+    about: String
+    profileURL: String
+  }
+  type Group {
+    id: ID!
+    firstName: String
+    lastName: String
+    createdBy: ID!
+    createdAt: Date
+    about: String
+    profileURL: String
   }
   type Token {
     token: String
+  }
+  type UserInt {
+    users: [User]
+    groups: [Group]
+  }
+  type Message {
+    id: ID!
+    message: String
+    senderId: ID
+    receiverId: ID
+    createdAt: Date
+  }
+  type UserWithMessages {
+    id: ID!
+    firstName: String
+    lastName: String
+    email: String
+    createdAt: Date
+    about: String
+    profileURL: String
+  }
+  type interaction {
+    userId: ID
+    isGroup: Boolean
+    contactId: ID
+    lastInteracted: Date
+    lastReadMessage: ID
+    unReadMessages: Int
+    typing: Boolean
+    user: User
+    chat: [Message]
+  }
+  type userEmails {
+    email: String
+    id: ID
   }
   type Query {
     getAllUsers: [User]
     getUser(id: ID!): User
     signInUser(user: signIn): Token
+    getAllInt: UserInt
+    getAllInteractions: [interaction]
+    Chat: [Message]
+    searchUsers(userName: String!): [userEmails]
   }
+
   input NewUser {
     firstName: String!
     lastName: String!
@@ -33,17 +83,22 @@ const typeDefsUser = `
     email: String
     password: String
   }
-  type About{
-    about:String
+  type About {
+    about: String
   }
-  type Name{
-    name:String
+  type Name {
+    name: String
+  }
+  input interactionInput {
+    contactId: ID!
+    isGroup: Boolean!
   }
   type Mutation {
     registerUser(newUser: NewUser!): Token
-    updateAbout(about:String):About
-    updateName(name:String):Name
-    updateNameNAbout(name:String,about:String):User
+    updateAbout(about: String): About
+    updateName(name: String): Name
+    updateNameNAbout(name: String, about: String): User
+    addInteraction(newInt: interactionInput!): interaction
   }
 `;
 
@@ -56,8 +111,27 @@ const resolversUser = {
         },
         where: { id: { not: user?.id } },
       });
-      // console.log(users)
       return users;
+    },
+    searchUsers: async (_, { userName }, {}) => {
+      const emails = await prisma.user.findMany({
+        where: { email: { contains: userName } },
+        select: { email: true, id: true },
+      });
+      return emails;
+    },
+    getAllInteractions: async (_, __, { user }) => {
+      if (!user)
+        throw new Error("missing or expired token, Login and try again!!");
+      const interactions = await prisma.userInteractions.findMany({
+        where: { userId: user.id },
+        orderBy: { lastInteracted: "desc" },
+      });
+      return interactions;
+    },
+    Chat: async (_, __, { user }) => {
+      console.log("in Chat");
+      return [];
     },
     getUser: async (_, { id }) => {
       const user = await prisma.user.findUnique({
@@ -86,6 +160,17 @@ const resolversUser = {
   },
 
   Mutation: {
+    addInteraction: async (_, { newInt }, { user }) => {
+      const res = await prisma.userInteractions.create({
+        data: {
+          contactId: parseInt(newInt.contactId),
+          isGroup: newInt.isGroup,
+          userId: user.id,
+          lastReadMessage: 0,
+        },
+      });
+      return res;
+    },
     updateAbout: async (_, { about }, { user }) => {
       if (!user)
         throw new Error("missing or expired token, Login and try again!!");
@@ -137,8 +222,31 @@ const resolversUser = {
       return { token };
     },
   },
-
-  // sub query in get all users
+};
+const typeResolversUser = {
+  interaction: {
+    user: async (parent, {}, { user }) => {
+      const currUser = await prisma.user.findUnique({
+        where: { id: parent.contactId },
+      });
+      return currUser;
+    },
+    chat: async (parent, __, { user }) => {
+      const messages = await prisma.message.findMany({
+        where: {
+          OR: [
+            { AND: [{ senderId: parent.contactId }, { receiverId: user.id }] },
+            { AND: [{ senderId: user.id }, { receiverId: parent.contactId }] },
+          ],
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      });
+      parent.firstName = "changes";
+      return messages;
+    },
+  },
 };
 
-module.exports = { resolversUser, typeDefsUser };
+module.exports = { resolversUser, typeDefsUser, typeResolversUser };

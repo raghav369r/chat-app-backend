@@ -35,3 +35,13 @@ model Message {
   receiver   User     @relation(name: "receiver", fields: [receiverId], references: [id])
   createdAt  DateTime @default(now())
 }
+
+model UserInteractions {
+  userId          Int
+  isGroup         Boolean
+  contactId       Int
+  lastInteracted  DateTime @default(now())
+  lastReadMessage Int
+
+  @@id([userId, contactId, isGroup])
+}

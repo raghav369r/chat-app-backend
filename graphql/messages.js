@@ -1,11 +1,12 @@
 const { subscribe } = require("graphql");
 const prisma = require("../client/prisma.js");
 const { PubSub, withFilter } = require("graphql-subscriptions");
+const { gql } = require("apollo-server-express");
 
 const pubsub = new PubSub();
 const MSG_CREATED = "MESSAGE_CREATED";
 const TYPING = "typing...";
-const typeDefsMsg = `
+const typeDefsMsg = gql`
   type Message {
     id: ID!
     message: String
@@ -14,12 +15,12 @@ const typeDefsMsg = `
     createdAt: Date
   }
   type Query {
-    showMessages:[Message]
-    showSentMessages(id:ID!):[Message]
-    showReceivedMessages(id:ID!):[Message]
-    messagesByUser(id:ID!):[Message]
+    showMessages: [Message]
+    showSentMessages(id: ID!): [Message]
+    showReceivedMessages(id: ID!): [Message]
+    messagesByUser(id: ID!): [Message]
   }
-  
+
   input newMessage {
     message: String!
     receiverId: ID!
@@ -27,17 +28,16 @@ const typeDefsMsg = `
   type typing {
     istyping: Boolean!
     receiverId: ID!
-    senderId:ID!
+    senderId: ID!
   }
   type Mutation {
     sendMessage(newMsg: newMessage!): Message
-    isTyping(receiverId:ID!,istyping:Boolean!):Boolean
+    isTyping(receiverId: ID!, istyping: Boolean!): Boolean
   }
   type Subscription {
-    messageAdded(sender:ID,receiver:ID):Message
-    typing(sender:ID!,receiver:ID!):typing
+    messageAdded: Message
+    typing: typing
   }
-  
 `;
 
 const resolversMsg = {
@@ -104,12 +104,10 @@ const resolversMsg = {
           if (!user) throw new Error("token missing or expired, login again");
           return pubsub.asyncIterator(MSG_CREATED);
         },
-        ({ messageAdded: payload }, variables) => {
-          const { sender, receiver } = variables;
-          return (
-            (payload.senderId == sender && payload.receiverId == receiver) ||
-            (payload.senderId == receiver && payload.receiverId == sender)
-          );
+        ({ messageAdded: payload }, variables, { user }) => {
+          // console.log("user: ", user);
+          const { id: subscriberId } = user;
+          return payload.receiverId == subscriberId;
         }
       ),
     },
@@ -123,9 +121,9 @@ const resolversMsg = {
           if (!user) throw new Error("token missing or expired, login again");
           return pubsub.asyncIterator(TYPING);
         },
-        ({ typing: payload }, variables) => {
-          const { receiver, sender } = variables;
-          return receiver == payload.receiverId && sender == payload.senderId;
+        ({ typing: payload }, variables, { user }) => {
+          const { id: subscriberId } = user;
+          return payload.receiverId == subscriberId;
         }
       ),
     },
