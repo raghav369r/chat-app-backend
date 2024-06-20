@@ -37,7 +37,7 @@ const resolvers = {
   ...typeResolversUser,
 };
 const app = express();
-app.use(cors());
+app.use(cors({ origin: true }));
 
 async function startServer() {
   const schema = makeExecutableSchema({ typeDefs, resolvers });
