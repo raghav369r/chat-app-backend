@@ -70,6 +70,7 @@ const typeDefsUser = gql`
     getAllInteractions: [interaction]
     Chat: [Message]
     searchUsers(userName: String!): [userEmails]
+    getIntraction(id: ID!): interaction
   }
 
   input NewUser {
@@ -104,6 +105,18 @@ const typeDefsUser = gql`
 
 const resolversUser = {
   Query: {
+    getIntraction: async (_, { id }, { user }) => {
+      if (!user)
+        throw new Error("missing or expired token, Login and try again!!");
+      const res = prisma.userInteractions.findFirst({
+        where: {
+          userId: parseInt(user.id),
+          contactId: parseInt(id),
+          isGroup: false,
+        },
+      });
+      return res;
+    },
     getAllUsers: async (_, __, { user }) => {
       const users = await prisma.user.findMany({
         orderBy: {
@@ -165,10 +178,27 @@ const resolversUser = {
         data: {
           contactId: parseInt(newInt.contactId),
           isGroup: newInt.isGroup,
-          userId: user.id,
+          userId: parseInt(user.id),
           lastReadMessage: 0,
         },
       });
+      const ex = await prisma.userInteractions.findFirst({
+        where: {
+          isGroup: newInt.isGroup,
+          userId: parseInt(newInt.contactId),
+          contactId: parseInt(user.id),
+        },
+      });
+      if (!ex) {
+        const newi = await prisma.userInteractions.create({
+          data: {
+            contactId: user.id,
+            isGroup: newInt.isGroup,
+            userId: parseInt(newInt.contactId),
+            lastReadMessage: 0,
+          },
+        });
+      }
       return res;
     },
     updateAbout: async (_, { about }, { user }) => {
