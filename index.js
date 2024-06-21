@@ -37,7 +37,8 @@ const resolvers = {
   ...typeResolversUser,
 };
 const app = express();
-app.use(cors({ origin: true }));
+
+app.use(cors());
 
 async function startServer() {
   const schema = makeExecutableSchema({ typeDefs, resolvers });
@@ -54,7 +55,7 @@ async function startServer() {
   });
 
   await apolloServer.start();
-  apolloServer.applyMiddleware({ app });
+  apolloServer.applyMiddleware({ app, cors: false }); // Disable default CORS handling
 
   const server = createServer(app);
 
