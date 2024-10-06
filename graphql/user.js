@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const prisma = require("../client/prisma.js");
 const { gql } = require("apollo-server-express");
+const { signedUrl } = require("../services/s3.js");
 const typeDefsUser = gql`
   scalar Date
 
@@ -150,7 +151,7 @@ const resolversUser = {
       const user = await prisma.user.findUnique({
         where: { id: parseInt(id) },
       });
-      if (user) return user;
+      if (user) return userNsignedurl(user);
       throw new Error("No user found With Given ID");
     },
     signInUser: async (_, { user }) => {
@@ -259,7 +260,7 @@ const typeResolversUser = {
       const currUser = await prisma.user.findUnique({
         where: { id: parent.contactId },
       });
-      return currUser;
+      return userNsignedurl(currUser);
     },
     chat: async (parent, __, { user }) => {
       const messages = await prisma.message.findMany({
@@ -280,3 +281,13 @@ const typeResolversUser = {
 };
 
 module.exports = { resolversUser, typeDefsUser, typeResolversUser };
+const userNsignedurl = async (user) => {
+  let url = user.profileURL;
+  if (!url) return user;
+  try {
+    url = await signedUrl(url);
+  } catch (ex) {
+    url = "";
+  }
+  return { ...user, profileURL: url };
+};
