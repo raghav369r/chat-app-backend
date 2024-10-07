@@ -13,6 +13,8 @@ const {
 } = require("./graphql/user.js");
 const { typeDefsMsg, resolversMsg } = require("./graphql/messages.js");
 const jwt = require("jsonwebtoken");
+const profileUpload=require("./controlers/profileupload.js");
+const { auth } = require("./middlewares/auth.js");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 4000;
@@ -39,14 +41,19 @@ const resolvers = {
 const app = express();
 
 app.use(cors());
-
+app.use("/uploadprofile",auth,profileUpload);
 async function startServer() {
   const schema = makeExecutableSchema({ typeDefs, resolvers });
 
   const cxt = async ({ req }) => {
     const token = req.headers.authorization;
     if (!token) return { ...req };
-    const decoded = await jwt.verify(token, process.env.JWT_KEY);
+    let decoded = null;
+    try {
+      decoded = await jwt.verify(token, process.env.JWT_KEY);
+    } catch (ex) {
+      console.log(ex.message);
+    }
     return { ...req, user: decoded };
   };
   const apolloServer = new ApolloServer({
@@ -97,3 +104,5 @@ async function startServer() {
 }
 
 startServer();
+
+// "start": "npx prisma generate && node index.js",
